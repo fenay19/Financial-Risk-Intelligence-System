@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Indian Market Risk Intelligence</title>
+    <style>
+        :root {
+            --bg-dark: #121212;
+            --bg-panel: #1e1e24;
+            --text-main: #e0e0e0;
+            --text-muted: #9e9e9e;
+            --accent-blue: #3b82f6;
+            --border-light: #333;
+            --risk-severe: #ef4444;
+            --risk-high: #f97316;
+            --risk-moderate: #eab308;
+            --risk-low: #22c55e;
+            --alert-red: #fee2e2;
+            --alert-red-text: #b91c1c;
+            --alert-orange: #ffedd5;
+            --alert-orange-text: #c2410c;
+            --alert-yellow: #fef9c3;
+            --alert-yellow-text: #a16207;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            margin: 0;
+            padding: 0;
+        }
+
+        header {
+            background-color: #1a1a20;
+            padding: 20px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border-light);
+        }
+
+        .header-brand h1 {
+            margin: 0;
+            font-size: 24px;
+            color: white;
+            letter-spacing: 0.5px;
+        }
+
+        .header-brand p {
+            margin: 5px 0 0;
+            color: var(--text-muted);
+            font-size: 14px;
+        }
+
+        .live-ticker {
+            display: flex;
+            gap: 20px;
+            font-size: 14px;
+            background: #2a2a35;
+            padding: 10px 20px;
+            border-radius: 8px;
+        }
+
+        .ticker-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .ticker-val {
+            font-weight: bold;
+            color: white;
+        }
+        .ticker-change.pos { color: var(--risk-low); }
+        .ticker-change.neg { color: var(--risk-severe); }
+
+        .container {
+            max-width: 1400px;
+            margin: 30px auto;
+            padding: 0 20px;
+        }
+
+        .search-container {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .search-input {
+            flex-grow: 1;
+            padding: 15px 20px;
+            font-size: 16px;
+            border-radius: 8px;
+            border: 1px solid var(--border-light);
+            background: var(--bg-panel);
+            color: white;
+            outline: none;
+        }
+        .search-input:focus { border-color: var(--accent-blue); }
+
+        .search-btn {
+            padding: 0 30px;
+            background: var(--accent-blue);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background 0.2s;
+        }
+        .search-btn:hover { background: #2563eb; }
+
+        .alerts {
+            margin-bottom: 20px;
+        }
+        .alert-banner {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            font-weight: 500;
+            display: none;
+        }
+        .alert-sebi { background: var(--alert-red); color: var(--alert-red-text); }
+        .alert-asm { background: var(--alert-orange); color: var(--alert-orange-text); }
+        .alert-pledge { background: var(--alert-yellow); color: var(--alert-yellow-text); }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(12, 1fr);
+            gap: 20px;
+        }
+
+        .panel {
+            background: var(--bg-panel);
+            border-radius: 10px;
+            padding: 20px;
+            border: 1px solid var(--border-light);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .panel h3 {
+            margin-top: 0;
+            margin-bottom: 20px;
+            font-size: 16px;
+            color: #fff;
+            border-bottom: 1px solid var(--border-light);
+            padding-bottom: 10px;
+        }
+
+        /* Panel Span Definitions */
+        .panel-score { grid-column: span 3; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .panel-metrics { grid-column: span 9; }
+        .panel-breakdown { grid-column: span 6; }
+        .panel-sentences { grid-column: span 6; }
+        .panel-heatmap { grid-column: span 8; }
+        .panel-words { grid-column: span 4; }
+
+        .score-circle {
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 48px;
+            font-weight: bold;
+            color: #fff;
+            margin-bottom: 10px;
+            border: 8px solid;
+            background: #2a2a35;
+        }
+        .score-meta { text-align: center; color: var(--text-muted); font-size: 14px;}
+
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid var(--border-light); font-size: 14px; }
+        th { color: var(--text-muted); font-weight: normal; }
+        td { color: #fff; }
+
+        .tag {
+            display: inline-block;
+            padding: 4px 8px;
+            background: #333;
+            border-radius: 4px;
+            font-size: 12px;
+            margin: 2px;
+            color: #ddd;
+        }
+
+        .sentence-card {
+            background: #2a2a35;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 10px;
+            font-size: 14px;
+            border-left: 4px solid var(--border-light);
+        }
+        .sentence-meta {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 12px;
+        }
+
+        .heatmap-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 10px;
+        }
+        .heat-tile {
+            padding: 15px 10px;
+            text-align: center;
+            border-radius: 6px;
+            cursor: pointer;
+            color: white;
+            font-weight: bold;
+            font-size: 12px;
+            transition: transform 0.2s;
+        }
+        .heat-tile:hover { transform: scale(1.05); }
+
+        .word-cloud {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+            align-items: center;
+            padding: 20px 0;
+        }
+        div.disclaimer {
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 12px;
+            margin-top: 40px;
+            padding: 20px;
+            border-top: 1px solid var(--border-light);
+        }
+
+        .loader {
+            display: none;
+            border: 4px solid rgba(255,255,255,0.1);
+            border-top: 4px solid var(--accent-blue);
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+
+<header>
+    <div class="header-brand">
+        <h1>Indian Market Risk Intelligence</h1>
+        <p>NSE · BSE · SEBI · RBI context</p>
+    </div>
+    <div class="live-ticker" id="liveTicker">
+        <!-- Rendered by JS -->
+    </div>
+</header>
+
+<div class="container">
+    <div class="search-container">
+        <input type="text" id="searchInput" class="search-input" placeholder="Enter NSE symbol (RELIANCE) or sector (banking)">
+        <button class="search-btn" onclick="analyzeQuery()">Analyze</button>
+    </div>
+
+    <div class="alerts" id="alertsContainer">
+        <div class="alert-banner alert-sebi" id="alertSebi">⚠ SEBI Action Detected — Active regulatory order found</div>
+        <div class="alert-banner alert-asm" id="alertAsm">⚠ ASM/GSM Flag — Stock under NSE/BSE surveillance</div>
+        <div class="alert-banner alert-pledge" id="alertPledge">⚠ High Promoter Pledge — Check market metrics for details.</div>
+    </div>
+
+    <div class="loader" id="loader"></div>
+
+    <div class="dashboard-grid" id="dashboard" style="display: none;">
+        
+        <div class="panel panel-score">
+            <h3>Overall Risk Score</h3>
+            <div class="score-circle" id="scoreCircle">--</div>
+            <div class="score-meta" id="scoreMeta">-- %</div>
+            <p style="font-size: 14px; margin-top: 15px; color: var(--text-muted)" id="scoreContext"></p>
+        </div>
+
+        <div class="panel panel-metrics">
+            <h3>Market Metrics</h3>
+            <table id="metricsTable">
+                <tbody>
+                    <!-- JS fills -->
+                </tbody>
+            </table>
+        </div>
+
+        <div class="panel panel-breakdown">
+            <h3>Category Breakdown</h3>
+            <table id="categoryTable">
+                <thead>
+                    <tr>
+                        <th>Category</th>
+                        <th>Risk Score</th>
+                        <th>Top Triggers</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- JS fills -->
+                </tbody>
+            </table>
+        </div>
+
+        <div class="panel panel-sentences">
+            <h3>Top Risk Sentences</h3>
+            <div id="sentencesContainer"></div>
+        </div>
+
+        <div class="panel panel-heatmap">
+            <h3>NIFTY 50 Risk Heatmap Snapshot</h3>
+            <div class="heatmap-grid" id="heatmapGrid"></div>
+        </div>
+
+        <div class="panel panel-words">
+            <h3>Risk Context Word Cloud</h3>
+            <div class="word-cloud" id="wordCloud"></div>
+        </div>
+    </div>
+
+    <div class="disclaimer">
+        This tool is for informational purposes only. It is NOT registered investment advice under SEBI (Investment Advisers) Regulations, 2013. Always consult a SEBI-registered advisor before making investment decisions.
+    </div>
+</div>
+
+<script>
+    function getColorForScore(score) {
+        if(score >= 75) return 'var(--risk-severe)';
+        if(score >= 50) return 'var(--risk-high)';
+        if(score >= 25) return 'var(--risk-moderate)';
+        return 'var(--risk-low)';
+    }
+
+    async function loadMarketPulse() {
+        try {
+            const res = await fetch('/api/market-pulse');
+            const data = await res.json();
+            const tickerHtml = `
+                <div class="ticker-item">
+                    <span>NIFTY 50</span>
+                    <span class="ticker-val ticker-change ${data.nifty50_pct_change >= 0 ? 'pos' : 'neg'}">${data.nifty50_pct_change}%</span>
+                </div>
+                <div class="ticker-item">
+                    <span>SENSEX</span>
+                    <span class="ticker-val ticker-change ${data.sensex_pct_change >= 0 ? 'pos' : 'neg'}">${data.sensex_pct_change}%</span>
+                </div>
+                <div class="ticker-item">
+                    <span>INDIA VIX</span>
+                    <span class="ticker-val">${data.india_vix}</span>
+                </div>
+                <div class="ticker-item">
+                    <span>USD/INR</span>
+                    <span class="ticker-val">₹${data.usd_inr}</span>
+                </div>
+            `;
+            document.getElementById('liveTicker').innerHTML = tickerHtml;
+        } catch (e) {
+            console.error('Failed to load pulse');
+        }
+    }
+
+    async function loadHeatmap() {
+        try {
+            const res = await fetch('/api/nifty-heatmap');
+            const data = await res.json();
+            const container = document.getElementById('heatmapGrid');
+            container.innerHTML = '';
+            
+            data.forEach(item => {
+                const col = getColorForScore(item.score);
+                const tile = document.createElement('div');
+                tile.className = 'heat-tile';
+                tile.style.backgroundColor = item.score > 0 ? col : '#333';
+                tile.innerHTML = `<div>${item.ticker}</div><div style="font-size:16px">${item.score > 0 ? item.score.toFixed(1) : '-'}</div>`;
+                tile.onclick = () => {
+                    document.getElementById('searchInput').value = item.ticker;
+                    analyzeQuery();
+                };
+                container.appendChild(tile);
+            });
+        } catch (e) {
+            console.error('Failed to load heatmap');
+        }
+    }
+
+    async function analyzeQuery() {
+        const q = document.getElementById('searchInput').value;
+        if(!q) return;
+
+        document.getElementById('loader').style.display = 'block';
+        document.getElementById('dashboard').style.display = 'none';
+        
+        // Hide alerts
+        document.getElementById('alertSebi').style.display = 'none';
+        document.getElementById('alertAsm').style.display = 'none';
+        document.getElementById('alertPledge').style.display = 'none';
+
+        try {
+            const res = await fetch('/api/analyze', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({q: q, refresh: false})
+            });
+            const data = await res.json();
+            
+            if (res.ok) {
+                renderDashboard(data);
+            } else {
+                alert('Analysis failed: ' + (data.detail || 'Server Error'));
+            }
+        } catch (e) {
+            console.error(e);
+            alert('Failed to execute backend query.');
+        } finally {
+            document.getElementById('loader').style.display = 'none';
+        }
+    }
+
+    function renderDashboard(data) {
+        document.getElementById('dashboard').style.display = 'grid';
+        
+        // Score logic
+        const circle = document.getElementById('scoreCircle');
+        circle.textContent = data.risk_score;
+        circle.style.borderColor = getColorForScore(data.risk_score);
+        document.getElementById('scoreMeta').textContent = data.risk_label;
+        document.getElementById('scoreContext').innerHTML = `Entity: <b>${data.entity.company_name}</b><br>Docs Indexed: ${data.documents_analyzed}`;
+
+        // Metrics Table
+        const m = data.market_metrics;
+        let p_text = m.pledged_shares_pct !== null ? m.pledged_shares_pct + '%' : 'N/A';
+        document.getElementById('metricsTable').innerHTML = `
+            <tr>
+                <td>Beta</td><td style="color:${m.beta>1.5?'#ef4444':'#fff'}">${m.beta||'N/A'}</td>
+                <td>P/E Ratio</td><td>${m.pe_ratio||'N/A'}</td>
+            </tr>
+            <tr>
+                <td>P/B Ratio</td><td>${m.pb_ratio||'N/A'}</td>
+                <td>Debt/Equity</td><td style="color:${m.debt_to_equity>2?'#ef4444':'#fff'}">${m.debt_to_equity||'N/A'}</td>
+            </tr>
+            <tr>
+                <td>Promoter Holding</td><td>${m.promoter_holding?m.promoter_holding+'%':'N/A'}</td>
+                <td>Pledged Shares</td><td style="color:${m.pledged_shares_pct>20?'#ef4444':'#fff'}">${p_text}</td>
+            </tr>
+            <tr>
+                <td>Repo Rate</td><td>${m.repo_rate}%</td>
+                <td>Market Cap (Cr)</td><td>₹${m.market_cap_cr ? Math.round(m.market_cap_cr) : 'N/A'}</td>
+            </tr>
+        `;
+
+        // Check alerts based roughly off what we passed in metrics (we didn't explicitly pass the flags into the JSON payload top level, but we have metrics bounds or sentences mapping them - approximating frontend display based on metric rules defined)
+        // Ideally we'd map alerts definitively if we included them in models.py payload directly.
+        if (m.pledged_shares_pct > 30) document.getElementById('alertPledge').style.display = 'block';
+
+        // Breakdown table
+        let catHtml = '';
+        const cats = data.category_breakdown;
+        for(const [key, val] of Object.entries(cats)) {
+            const tags = val.top_triggers.map(t => `<span class="tag">${t}</span>`).join('');
+            catHtml += `
+                <tr>
+                    <td style="font-weight:bold">${key}</td>
+                    <td><span style="color:${getColorForScore(val.score)}; font-weight:bold">${val.score.toFixed(1)}</span> (${val.label})</td>
+                    <td>${tags}</td>
+                </tr>
+            `;
+        }
+        document.getElementById('categoryTable').getElementsByTagName('tbody')[0].innerHTML = catHtml;
+
+        // Sentences
+        let sHtml = '';
+        data.top_sentences.forEach(s => {
+            let bColor = '#333';
+            if(s.source.includes('SEBI')) bColor = 'var(--risk-severe)';
+            if(s.source.includes('BSE')) bColor = 'var(--accent-blue)';
+            if(s.source.includes('RSS')) bColor = 'var(--risk-high)';
+            
+            sHtml += `
+                <div class="sentence-card" style="border-left-color: ${bColor}">
+                    <div class="sentence-meta">
+                        <span style="color:var(--text-muted)">${s.source}</span>
+                        <span style="color:var(--text-muted)">${s.category} [Score: ${s.risk_score.toFixed(1)}]</span>
+                    </div>
+                    <div>${s.text}</div>
+                </div>
+            `;
+        });
+        document.getElementById('sentencesContainer').innerHTML = sHtml;
+
+        // Word Cloud
+        let wHtml = '';
+        data.top_risk_terms.forEach((term, idx) => {
+            const size = Math.max(12, 28 - (idx * 1.5));
+            const opacity = Math.max(0.4, 1 - (idx * 0.05));
+            wHtml += `<span style="font-size: ${size}px; color: rgba(255,255,255,${opacity}); margin: 0 5px">${term}</span>`;
+        });
+        document.getElementById('wordCloud').innerHTML = wHtml;
+    }
+
+    // Init
+    loadMarketPulse();
+    loadHeatmap();
+    setInterval(loadMarketPulse, 60000); // 1 min refresh for pulse
+</script>
+</body>
+</html>
