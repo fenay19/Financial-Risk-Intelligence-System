@@ -9,7 +9,7 @@ This is a custom risk intelligence API and dashboard explicitly tuned to analyzi
 pip install -r requirements.txt
 ```
 
-2. **Download NLP Spacy and NLTK primitives**
+2. **Download NLP spacy and NLTK primitives**
 ```bash
 python -m spacy download en_core_web_sm
 python -m nltk.downloader punkt stopwords averaged_perceptron_tagger
